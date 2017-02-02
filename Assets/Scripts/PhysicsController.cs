@@ -39,6 +39,7 @@ namespace Physics {
                 _rest_len = rl;
             }
 
+            public float _offset;
             public float _rest_len;
             public int _entity_a_key;
             public int _entity_b_key;
@@ -47,7 +48,7 @@ namespace Physics {
         }
 
         private static readonly int MAX_ENTITY_COUNT = 20000;
-        private static readonly Vector3 GRAVITY = new Vector3(0, 0, 0);
+        public Vector3 _gravity = new Vector3(0, 2, 0);
 
         private Dictionary<int, int> _entity_map = new Dictionary<int, int>();
         private List<Constraint> _constraints = new List<Constraint>();
@@ -73,10 +74,14 @@ namespace Physics {
             _entity_pool[_entity_map[id]]._is_static = is_static;
         }
 
-        public void update() {
+        public void prepare(int iterations = 10) {
+            update_constraints_bend(iterations); // Iterations = 3
+        }
+
+        public void update(float rate = 0.03f, int iterations = 3) {
             accumulate_forces();
-            verlet(0.03f); // rate = frames/sec
-            update_constraints(3); // Iterations = 3
+            verlet(rate); // rate = frames/sec
+            update_constraints_bend(iterations); // Iterations = 3
         }
 
         // Add force on a point in skeleton
@@ -130,6 +135,7 @@ namespace Physics {
             }
 
             Constraint c = new Constraint(e1, e2, _entity_map[e1], _entity_map[e2], len);
+            c._offset = Random.Range(-10f, 10f);
             _constraints.Add(c);
         }
 
@@ -159,6 +165,17 @@ namespace Physics {
 
                 // Store the old position until next calculation
                 _old_pos[i] = old_pos;
+            }
+        }
+
+        public void update_rest_len() {
+            int NUM_CONSTR = _constraints.Count;
+            for (int i = NUM_CONSTR - 1; i >= 0; --i) {
+                float f = Time.time;
+                float roc = 0.1f;
+                float amp = 10f;
+                float phase = _constraints[i]._offset;
+                _constraints[i]._rest_len = amp * Mathf.Sin(roc * f + phase);
             }
         }
 
@@ -204,6 +221,50 @@ namespace Physics {
             }
         }
 
+        private void update_constraints_bend(int iterations) {
+            for (int j = 0; j < iterations; ++j) {
+                // Keep bone lengts and restrain freedom of movement
+                int NUM_CONSTR = _constraints.Count;
+                for (int i = NUM_CONSTR - 1; i >= 0; --i) {
+                    Entity entity_a = _entity_pool[_constraints[i]._entity_a_idx];
+                    Entity entity_b = _entity_pool[_constraints[i]._entity_b_idx];
+
+                    if (entity_a == null || entity_b == null) {
+                        Debug.LogError("[Error] Entity a or b is null");
+                        continue;
+                    }
+
+                    // Just skip to next constraint if both inv_masses are 0
+                    if (entity_a._inv_mass + entity_b._inv_mass == 0) {
+                        continue;
+                    }
+
+                    Vector3 delta = entity_b._transform.position - entity_a._transform.position;
+
+                    float diff = 0;
+                    float rest_length = _constraints[i]._rest_len;
+
+                    float curr_length = Vector3.Distance(entity_a._transform.position, entity_b._transform.position);
+                    if (curr_length >= rest_length) {
+                        float deltalength = Vector3.Distance(entity_b._transform.position, entity_a._transform.position);
+                        float val = (deltalength * (entity_a._inv_mass + entity_b._inv_mass));
+                        if (val == 0) {
+                            diff = val;
+                        }
+                        else {
+                            diff = (deltalength - rest_length) / val;
+                        }
+                        if (entity_a._is_static == false) {
+                            entity_a._transform.position += entity_a._inv_mass * delta * diff;
+                        }
+                        if (entity_b._is_static == false) {
+                            entity_b._transform.position -= entity_b._inv_mass * delta * diff;
+                        }
+                    }
+                }
+            }
+        }
+
         private void accumulate_forces() {
             // Gravity, this step also remove old forces
             for (int i = 0; i < MAX_ENTITY_COUNT; ++i) {
@@ -211,7 +272,7 @@ namespace Physics {
                     continue;
                 }
 
-                _entity_pool[i]._force = GRAVITY * _entity_pool[i]._mass;
+                _entity_pool[i]._force = _gravity * _entity_pool[i]._mass;
             }
             while (_add_forces.Count != 0) {
                 Force f = _add_forces.Dequeue();

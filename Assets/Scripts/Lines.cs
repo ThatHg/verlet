@@ -21,29 +21,29 @@ public class Lines : MonoBehaviour {
 
     // Will be called after all regular rendering is done
     public void OnRenderObject() {
-        CreateLineMaterial();
-        // Apply the line material
-        lineMaterial.SetPass(0);
+        //CreateLineMaterial();
+        //// Apply the line material
+        //lineMaterial.SetPass(0);
 
-        GL.PushMatrix();
+        //GL.PushMatrix();
 
-        // Draw lines
-        Physics.PhysicsController.Constraint[] constraints = _controlls.Constraints;
-        Physics.PhysicsController.Entity[] entities = _controlls.Entities;
-        int chain_link_count = _controlls.ChainCount;
-        GL.Begin(GL.LINES);
-        GL.Color(new Color(0.7f, 0.0f, 0.1f, 0.7f));
-        for (int i = 0; i < constraints.Length; ++i) {
-            if(i == chain_link_count-1) {
-                GL.Color(new Color(0.7f, 0.4f, 0.1f, 0.2f));
-            }
-            var e1_pos = entities[constraints[i]._entity_a_idx]._transform.position;
-            var e2_pos = entities[constraints[i]._entity_b_idx]._transform.position;
-            GL.Vertex3(e1_pos.x, e1_pos.y,e1_pos.z);
-            GL.Vertex3(e2_pos.x, e2_pos.y, e2_pos.z);
-        }
-        GL.End();
-        GL.PopMatrix();
+        //// Draw lines
+        //Physics.PhysicsController.Constraint[] constraints = _controlls.Constraints;
+        //Physics.PhysicsController.Entity[] entities = _controlls.Entities;
+        //int chain_link_count = _controlls.ChainCount;
+        //GL.Begin(GL.LINES);
+        //GL.Color(new Color(0.7f, 0.0f, 0.1f, 0.7f));
+        //for (int i = 0; i < constraints.Length; ++i) {
+        //    if (i == chain_link_count - 1) {
+        //        GL.Color(new Color(0.7f, 0.4f, 0.1f, 0.2f));
+        //    }
+        //    var e1_pos = entities[constraints[i]._entity_a_idx]._transform.position;
+        //    var e2_pos = entities[constraints[i]._entity_b_idx]._transform.position;
+        //    GL.Vertex3(e1_pos.x, e1_pos.y, e1_pos.z);
+        //    GL.Vertex3(e2_pos.x, e2_pos.y, e2_pos.z);
+        //}
+        //GL.End();
+        //GL.PopMatrix();
     }
 }
 
